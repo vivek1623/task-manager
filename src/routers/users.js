@@ -91,9 +91,13 @@ router.patch('/users/me', authMiddleware, async (req, res) => {
 //delete own profile
 
 router.delete('/users/me', authMiddleware, async (req, res) => {
-  sendCancelationMail(req.user.email, req.user.name)
-  req.user.remove()
-  res.send(req.user)
+  try {
+    await req.user.remove()
+    sendCancelationMail(req.user.email, req.user.name)
+    res.send(req.user)
+  } catch (e) {
+    res.status(500).send(e)
+  }
 })
 
 //upload a profile pic
@@ -113,7 +117,7 @@ router.post('/users/me/avatar', authMiddleware, upload.single('avatar'), async (
   const buffer = await sharp(req.file.buffer).resize({ height: 250, width: 250 }).png().toBuffer()
   req.user.avatar = buffer
   await req.user.save()
-  res.send({ res: 'image successfully uploaded' })
+  res.send(req.user)
 }, (err, req, res, next) => {
   res.status(404).send({ error: err.message })
 })
@@ -123,7 +127,7 @@ router.post('/users/me/avatar', authMiddleware, upload.single('avatar'), async (
 router.delete('/users/me/avatar', authMiddleware, async (req, res) => {
   req.user.avatar = undefined
   await req.user.save()
-  res.send({ res: 'Image successfully deleted' })
+  res.send(req.user)
 })
 
 // get user profile
